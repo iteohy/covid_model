@@ -1,6 +1,6 @@
 from mesa import Model, Agent
 from mesa.time import RandomActivation
-from mesa.space import SingleGrid
+from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 
 
@@ -21,16 +21,33 @@ class SchellingAgent(Agent):
         super().__init__(pos, model)
         self.pos = pos
         self.type = agent_type
+        self.contact = set()
 
     def step(self):
         similar = 0
-        for neighbor in self.model.grid.neighbor_iter(self.pos):
+        for neighbor in self.model.grid.neighbor_iter(self.pos, moore=True):
             if neighbor.type == self.type:
                 similar += 1
+                self.contact.add(neighbor.unique_id)
 
         # If unhappy, move:
         if similar < self.model.homophily:
-            self.model.grid.move_to_empty(self)
+            # move to random adjacent cell
+            x, y = self.pos
+            r = self.random.random()
+            if r < 0.3:
+                x = x+1
+            elif r < 0.6:
+                x = x-1
+
+            r = self.random.random()
+            if r < 0.3:
+                y = y+1
+            elif r<0.6:
+                y = y-1
+
+
+            self.model.grid.move_agent(self, (x,y))
         else:
             self.model.happy += 1
 
@@ -51,13 +68,14 @@ class Schelling(Model):
         self.homophily = homophily
 
         self.schedule = RandomActivation(self)
-        self.grid = SingleGrid(width, height, torus=True)
+        self.grid = MultiGrid(width, height, torus=True)
 
         self.happy = 0
+        self.contact = 0
         self.datacollector = DataCollector(
             {"happy": "happy"},  # Model-level count of happy agents
             # For testing purposes, agent's individual x and y
-            {"x": lambda a: a.pos[0], "y": lambda a: a.pos[1]},
+            {"x": lambda a: a.pos[0], "y": lambda a: a.pos[1]}            
         )
 
         # Set up agents
@@ -74,7 +92,7 @@ class Schelling(Model):
                     agent_type = 0
 
                 agent = SchellingAgent((x, y), self, agent_type)
-                self.grid.position_agent(agent, (x, y))
+                self.grid.place_agent(agent, (x, y))
                 self.schedule.add(agent)
 
         self.running = True
@@ -91,3 +109,13 @@ class Schelling(Model):
 
         if self.happy == self.schedule.get_agent_count():
             self.running = False
+
+        # compute average contact per agent
+        total = 0
+        for cell in self.grid.coord_iter():
+            content, x, y = cell
+            if content:
+                for c in content:
+                    total+=len(c.contact)
+        self.contact = total/self.schedule.get_agent_count()
+

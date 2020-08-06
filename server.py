@@ -14,7 +14,7 @@ class HappyElement(TextElement):
         pass
 
     def render(self, model):
-        return "Happy agents: " + str(model.happy)
+        return "Happy agents: " + str(model.happy) + "; Contact:" + str(model.contact)
 
 
 def schelling_draw(agent):
