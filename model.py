@@ -23,41 +23,46 @@ class SchellingAgent(Agent):
         self.type = agent_type
         self.contact = set()
 
+
     def step(self):
         similar = 0
-        for neighbor in self.model.grid.neighbor_iter(self.pos, moore=True):
-            if neighbor.type == self.type:
-                similar += 1
-                self.contact.add(neighbor.unique_id)
 
-        # If unhappy, move:
-        if similar < self.model.homophily:
-            # move to random adjacent cell
-            x, y = self.pos
-            r = self.random.random()
-            if r < 0.3:
-                x = x+1
-            elif r < 0.6:
-                x = x-1
+        # track agents in contact
+        contents = self.model.grid.get_cell_list_contents(self.pos)
+        if len(contents)>1:
+            contents.remove(self)
+            for c in contents:
+                self.contact.add(c.unique_id)
 
-            r = self.random.random()
-            if r < 0.3:
-                y = y+1
-            elif r<0.6:
-                y = y-1
+                if self.type == 1: # infected
+                    if self.random.random()<0.7: # probability of infection
+                        c.type = 1
 
 
-            self.model.grid.move_agent(self, (x,y))
-        else:
-            self.model.happy += 1
+        # move to random adjacent cell
+        x, y = self.pos
+        r = self.random.random()
+        if r < 0.3:
+            x = x+1
+        elif r < 0.6:
+            x = x-1
 
+        r = self.random.random()
+        if r < 0.3:
+            y = y+1
+        elif r<0.6:
+            y = y-1
+
+
+        self.model.grid.move_agent(self, (x,y))
+        
 
 class Schelling(Model):
     """
     Model class for the Schelling segregation model.
     """
 
-    def __init__(self, height=20, width=20, density=0.8, minority_pc=0.2, homophily=3):
+    def __init__(self, height=20, width=20, density=0.1, minority_pc=0.0, homophily=3):
         """
         """
 
@@ -112,10 +117,13 @@ class Schelling(Model):
 
         # compute average contact per agent
         total = 0
+        infected = 0
         for cell in self.grid.coord_iter():
             content, x, y = cell
             if content:
                 for c in content:
                     total+=len(c.contact)
+                    if c.type == 1:
+                        infected += 1
         self.contact = total/self.schedule.get_agent_count()
 

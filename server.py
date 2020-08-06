@@ -14,7 +14,7 @@ class HappyElement(TextElement):
         pass
 
     def render(self, model):
-        return "Happy agents: " + str(model.happy) + "; Contact:" + str(model.contact)
+        return "Number agents: " + str(model.schedule.get_agent_count()) + "; Contact:" + str(model.contact)
 
 
 def schelling_draw(agent):
@@ -25,7 +25,7 @@ def schelling_draw(agent):
         return
     portrayal = {"Shape": "circle", "r": 0.5, "Filled": "true", "Layer": 0}
 
-    if agent.type == 0:
+    if agent.type == 1:
         portrayal["Color"] = ["#FF0000", "#FF9999"]
         portrayal["stroke_color"] = "#00FF00"
     else:
@@ -41,9 +41,9 @@ happy_chart = ChartModule([{"Label": "happy", "Color": "Black"}])
 model_params = {
     "height": 20,
     "width": 20,
-    "density": UserSettableParameter("slider", "Agent density", 0.8, 0.1, 1.0, 0.1),
+    "density": UserSettableParameter("slider", "Agent density", 0.1, 0.1, 1.0, 0.1),
     "minority_pc": UserSettableParameter(
-        "slider", "Fraction minority", 0.2, 0.00, 1.0, 0.05
+        "slider", "Fraction minority", 0.0, 0.00, 1.0, 0.05
     ),
     "homophily": UserSettableParameter("slider", "Homophily", 3, 0, 8, 1),
 }
