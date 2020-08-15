@@ -17,7 +17,7 @@ class DiseaseState():
         self.state = state
         self.setColors(color, stroke_color)
         self.setShape("circle", 0.5, "true", 0)
-        self.lifespan = 0
+        self.lifespan = -1
 
     def setColors(self, color, stroke_color):
         #portrayal["Color"] = ["#FF0000"]
@@ -32,9 +32,13 @@ class DiseaseState():
         self.layer = layer
         self.filled = filled
 
-    def incrementLife(self):
-        # tracks the number of steps this state has persisted.
-        self.lifespan+=1
+    def decrementLifespan(self):
+        if self.lifespan > -1:
+            self.lifespan -= 1
+
+    def setLifespan(self, lifespan):
+        self.lifespan = int(lifespan)
+        print(str(self)+': '+str(self.lifespan))
 
 
 class Susceptible(DiseaseState):
@@ -58,15 +62,14 @@ class Removed(DiseaseState):
         super().__init__("R", "#CCCCCC", "#000000")
 
 
-
-class SchellingAgent(Agent):
+class CovidAgent(Agent):
     """
-    Schelling segregation agent
+    Agent simulating covid-19 spread
     """
 
     def __init__(self, pos, model, d_state):
         """
-         Create a new Schelling agent.
+         Create a new covid agent.
 
          Args:
             unique_id: Unique identifier for the agent.
@@ -80,14 +83,17 @@ class SchellingAgent(Agent):
 
     def step(self):
         # increment lifespan
-        self.d_state.incrementLife()
+        #self.d_state.incrementLife()
+        self.d_state.decrementLifespan()
 
         if isinstance(self.d_state, Exposed):
-            if self.d_state.lifespan > 3:
+            if self.d_state.lifespan == 0 :
                 self.d_state = Infected()
+                ls = self.random.uniform(self.model.min_infected, self.model.max_infected)*self.model.day_steps
+                self.d_state.setLifespan(ls)
 
         elif isinstance(self.d_state, Infected):
-            if self.d_state.lifespan > 7:
+            if self.d_state.lifespan == 0:
                 self.d_state = Removed()
 
         # track agents in contact
@@ -102,10 +108,10 @@ class SchellingAgent(Agent):
 
                 if isinstance(self.d_state, Infected): # infected
                     if isinstance(c.d_state, Susceptible):
-                        if self.random.random()<0.7: # probability of infection
+                        if self.random.random()<self.model.infection_rate: # probability of infection
                             c.d_state = Exposed()
-
-           
+                            ls = self.random.uniform(self.model.min_exposed, self.model.max_exposed)*self.model.day_steps
+                            c.d_state.setLifespan(ls)
 
         # move to random adjacent cell
         x, y = self.pos
@@ -125,12 +131,13 @@ class SchellingAgent(Agent):
         self.model.grid.move_agent(self, (x,y))
         
 
-class Schelling(Model):
+class Covid(Model):
     """
-    Model class for the Schelling segregation model.
+    Model class for the Covid infection model.
     """
 
-    def __init__(self, height=20, width=20, density=0.1, minority_pc=0.1, homophily=3):
+    def __init__(self, density, minority_pc, infection_rate, min_infected, max_infected, min_exposed, 
+        max_exposed, day_steps, height=20, width=20):
         """
         """
 
@@ -138,7 +145,14 @@ class Schelling(Model):
         self.width = width
         self.density = density
         self.minority_pc = minority_pc
-        self.homophily = homophily
+        self.infection_rate = infection_rate
+
+        self.min_exposed = min_exposed
+        self.max_exposed = max_exposed
+        self.min_infected = min_infected
+        self.max_infected = max_infected
+
+        self.day_steps = day_steps
 
         self.schedule = RandomActivation(self)
         self.grid = MultiGrid(width, height, torus=True)
@@ -169,10 +183,14 @@ class Schelling(Model):
             if self.random.random() < self.density:
                 if self.random.random() < self.minority_pc:
                     agent_type = Infected()
+
+                    # generate typical infected lifespan from normal distribution
+                    ls = self.random.uniform(self.min_infected, self.max_infected)
+                    agent_type.setLifespan(ls*self.day_steps)
                 else:
                     agent_type = Susceptible()
 
-                agent = SchellingAgent((x, y), self, agent_type)
+                agent = CovidAgent((x, y), self, agent_type)
                 self.grid.place_agent(agent, (x, y))
                 self.schedule.add(agent)
 

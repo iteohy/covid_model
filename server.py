@@ -2,7 +2,7 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid, ChartModule, TextElement
 from mesa.visualization.UserParam import UserSettableParameter
 
-from model import Schelling
+from model import Covid
 
 
 class HappyElement(TextElement):
@@ -14,10 +14,10 @@ class HappyElement(TextElement):
         pass
 
     def render(self, model):
-        return "Number agents: " + str(model.schedule.get_agent_count()) + "; Infected:" + str(model.infected)
+        return "Number agents: " + str(model.schedule.get_agent_count()) + "; Day: " + str(int(model.schedule.steps/model.day_steps))
 
 
-def schelling_draw(agent):
+def covid_draw(agent):
     """
     Portrayal Method for canvas
     """
@@ -37,7 +37,7 @@ def schelling_draw(agent):
 
 
 happy_element = HappyElement()
-canvas_element = CanvasGrid(schelling_draw, 20, 20, 500, 500)
+canvas_element = CanvasGrid(covid_draw, 20, 20, 500, 500)
 seir_chart = ChartModule([
     {"Label": "infected", "Color": "Red"},
     {"Label": "exposed", "Color": "Blue"},
@@ -50,10 +50,16 @@ model_params = {
     "height": 20,
     "width": 20,
     "density": UserSettableParameter("slider", "Agent density", 0.1, 0.1, 1.0, 0.1),
-    "minority_pc": UserSettableParameter("slider", "Init Infected", 0.8, 0.05, 1.0, 0.05),
-    "homophily": UserSettableParameter("slider", "Homophily", 3, 0, 8, 1),
+    "minority_pc": UserSettableParameter("slider", "Init Infected", 0.2, 0.05, 1.0, 0.05),
+    "infection_rate": UserSettableParameter("slider", "Infectiousness", 0.7, 0.1, 1.0, 0.05),
+    "min_infected": UserSettableParameter('number', 'min Infected duration (days)', value=7),
+    "max_infected": UserSettableParameter('number', 'max Infected duration (days)', value=14),
+    "min_exposed": UserSettableParameter('number', 'min Exposed duration (days)', value=1),
+    "max_exposed": UserSettableParameter('number', 'max Exposed duration (days)', value=5),
+    "day_steps": UserSettableParameter('number', 'Number of steps in a day', value=5)
+    
 }
 
 server = ModularServer(
-    Schelling, [canvas_element, happy_element, seir_chart, contact_chart], "Schelling", model_params
+    Covid, [canvas_element, happy_element, seir_chart, contact_chart], "COVID-19", model_params
 )
