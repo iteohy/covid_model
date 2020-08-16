@@ -49,8 +49,8 @@ contact_chart = ChartModule([{"Label": "contact", "Color": "Black"}])
 model_params = {
     "height": 20,
     "width": 20,
-    "density": UserSettableParameter("slider", "Agent density", 0.1, 0.1, 1.0, 0.1),
-    "minority_pc": UserSettableParameter("slider", "Init Infected", 0.2, 0.05, 1.0, 0.05),
+    "density": UserSettableParameter("number", "number of agents", value=100),
+    "minority_pc": UserSettableParameter("number", "number Infected", value=10),
     "infection_rate": UserSettableParameter("slider", "Infectiousness", 0.7, 0.1, 1.0, 0.05),
     "min_infected": UserSettableParameter('number', 'min Infected duration (days)', value=7),
     "max_infected": UserSettableParameter('number', 'max Infected duration (days)', value=14),

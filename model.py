@@ -197,12 +197,19 @@ class Covid(Model):
         # We use a grid iterator that returns
         # the coordinates of a cell as well as
         # its contents. (coord_iter)
+
+        num_agents = 0
+        num_infected = 0
         for cell in self.grid.coord_iter():
             x = cell[1]
             y = cell[2]
-            if self.random.random() < self.density:
-                if self.random.random() < self.minority_pc:
+            if num_agents < self.density and self.random.random()>0.3:
+
+                num_agents += 1
+
+                if num_infected < self.minority_pc and self.random.random()>0.3:
                     agent_type = Infected()
+                    num_infected += 1
 
                     # generate typical infected lifespan from normal distribution
                     ls = self.random.uniform(self.min_infected, self.max_infected)
