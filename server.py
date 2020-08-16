@@ -56,7 +56,8 @@ model_params = {
     "max_infected": UserSettableParameter('number', 'max Infected duration (days)', value=14),
     "min_exposed": UserSettableParameter('number', 'min Exposed duration (days)', value=1),
     "max_exposed": UserSettableParameter('number', 'max Exposed duration (days)', value=5),
-    "day_steps": UserSettableParameter('number', 'Number of steps in a day', value=5)
+    "day_steps": UserSettableParameter('number', 'Number of steps in a day', value=5),
+    "day_isolation": UserSettableParameter('number', 'Number of days to isolation', value=6)
     
 }
 

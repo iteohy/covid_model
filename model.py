@@ -18,6 +18,7 @@ class DiseaseState():
         self.setColors(color, stroke_color)
         self.setShape("circle", 0.5, "true", 0)
         self.lifespan = -1
+        self.assigned_lifespan = -1
 
     def setColors(self, color, stroke_color):
         #portrayal["Color"] = ["#FF0000"]
@@ -38,7 +39,9 @@ class DiseaseState():
 
     def setLifespan(self, lifespan):
         self.lifespan = int(lifespan)
-        print(str(self)+': '+str(self.lifespan))
+        self.assigned_lifespan = int(lifespan)
+        
+        #print(str(self)+': '+str(self.lifespan))
 
 
 class Susceptible(DiseaseState):
@@ -67,7 +70,7 @@ class CovidAgent(Agent):
     Agent simulating covid-19 spread
     """
 
-    def __init__(self, pos, model, d_state):
+    def __init__(self, pos, model, d_state, move=True, isolate_duration=14):
         """
          Create a new covid agent.
 
@@ -80,11 +83,15 @@ class CovidAgent(Agent):
         self.pos = pos
         self.contact = set()
         self.d_state = d_state
+        self.move = move
+        self.isolate_duration = isolate_duration
+
 
     def step(self):
         # increment lifespan
         #self.d_state.incrementLife()
         self.d_state.decrementLifespan()
+        self.isolate_duration -= 1 # decrease isolation duration
 
         if isinstance(self.d_state, Exposed):
             if self.d_state.lifespan == 0 :
@@ -96,18 +103,30 @@ class CovidAgent(Agent):
             if self.d_state.lifespan == 0:
                 self.d_state = Removed()
 
+            if (self.d_state.assigned_lifespan - self.d_state.lifespan) == self.model.day_isolation:
+                self.move = False
+
+        # if agent not moving, stop here.
+        if not self.move:
+            # if isolation complete, move again
+            if self.isolate_duration==0:
+                self.move = True
+            else:
+                return
+
         # track agents in contact
         contents = self.model.grid.get_cell_list_contents(self.pos)      
 
         if len(contents)>1:
             contents.remove(self)
             for c in contents:
-                self.contact.add(c.unique_id)
+                if c.move:
+                    self.contact.add(c.unique_id)
 
                 # what to do to agent(s) in cell
 
                 if isinstance(self.d_state, Infected): # infected
-                    if isinstance(c.d_state, Susceptible):
+                    if isinstance(c.d_state, Susceptible) and c.move:
                         if self.random.random()<self.model.infection_rate: # probability of infection
                             c.d_state = Exposed()
                             ls = self.random.uniform(self.model.min_exposed, self.model.max_exposed)*self.model.day_steps
@@ -137,7 +156,7 @@ class Covid(Model):
     """
 
     def __init__(self, density, minority_pc, infection_rate, min_infected, max_infected, min_exposed, 
-        max_exposed, day_steps, height=20, width=20):
+        max_exposed, day_steps, day_isolation, height=20, width=20):
         """
         """
 
@@ -153,6 +172,7 @@ class Covid(Model):
         self.max_infected = max_infected
 
         self.day_steps = day_steps
+        self.day_isolation = day_isolation
 
         self.schedule = RandomActivation(self)
         self.grid = MultiGrid(width, height, torus=True)
