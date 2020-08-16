@@ -200,26 +200,28 @@ class Covid(Model):
 
         num_agents = 0
         num_infected = 0
-        for cell in self.grid.coord_iter():
-            x = cell[1]
-            y = cell[2]
-            if num_agents < self.density and self.random.random()>0.3:
 
-                num_agents += 1
+        while num_agents < self.density:
+            for cell in self.grid.coord_iter():
+                x = cell[1]
+                y = cell[2]
+                if num_agents < self.density and self.random.random()<0.3:
 
-                if num_infected < self.minority_pc and self.random.random()>0.3:
-                    agent_type = Infected()
-                    num_infected += 1
+                    num_agents += 1
 
-                    # generate typical infected lifespan from normal distribution
-                    ls = self.random.uniform(self.min_infected, self.max_infected)
-                    agent_type.setLifespan(ls*self.day_steps)
-                else:
-                    agent_type = Susceptible()
+                    if num_infected < self.minority_pc and self.random.random()<0.3:
+                        agent_type = Infected()
+                        num_infected += 1
 
-                agent = CovidAgent((x, y), self, agent_type)
-                self.grid.place_agent(agent, (x, y))
-                self.schedule.add(agent)
+                        # generate typical infected lifespan from normal distribution
+                        ls = self.random.uniform(self.min_infected, self.max_infected)
+                        agent_type.setLifespan(ls*self.day_steps)
+                    else:
+                        agent_type = Susceptible()
+
+                    agent = CovidAgent((x, y), self, agent_type)
+                    self.grid.place_agent(agent, (x, y))
+                    self.schedule.add(agent)
 
         self.running = True
         #self.datacollector.collect(self)
