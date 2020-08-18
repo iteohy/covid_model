@@ -14,7 +14,7 @@ class HappyElement(TextElement):
         pass
 
     def render(self, model):
-        return "Number agents: " + str(model.schedule.get_agent_count()) + "; Day: " + str(int(model.schedule.steps/model.day_steps))
+        return "Number agents: " + str(len(model.schedule.agents)) + "; Day: " + str(int(model.schedule.steps/model.day_steps))
 
 
 def covid_draw(agent):
