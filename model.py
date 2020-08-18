@@ -84,7 +84,7 @@ class CovidAgent(Agent):
         self.contact = set()
         self.d_state = d_state
         self.move = move
-        self.isolate_duration = isolate_duration
+        self.isolate_duration = isolate_duration*model.day_steps
 
 
     def step(self):
@@ -92,7 +92,8 @@ class CovidAgent(Agent):
         #self.d_state.incrementLife()
         self.d_state.decrementLifespan()
         
-        if isinstance(self.d_state, Exposed):
+        if False:
+        #if isinstance(self.d_state, Infected):
             print("assigned_ls, lifespan, day_isolation, isolate_duration, move")
             print(type(self.d_state))
             print(self.d_state.assigned_lifespan)
@@ -112,7 +113,7 @@ class CovidAgent(Agent):
             if self.d_state.lifespan <= 0:
                 self.d_state = Removed()
 
-            if (self.d_state.assigned_lifespan - self.d_state.lifespan) <= self.model.day_isolation:
+            if (self.d_state.assigned_lifespan - self.d_state.lifespan) >= self.model.day_isolation:
                 self.move = False
                 self.isolate_duration -= 1 # decrease isolation duration
 
@@ -215,26 +216,36 @@ class Covid(Model):
         num_infected = 0
 
         while num_agents < self.density:
-            print(str(num_agents)+" agents.")
-            for cell in self.grid.coord_iter():
-                x = cell[1]
-                y = cell[2]
-                if num_agents < self.density and self.random.random()<0.2:
+            
+            #for cell in self.grid.coord_iter():
+                #x = cell[1]
+                #y = cell[2]
 
-                    if num_infected < self.minority_pc:
-                        agent_type = Infected()
-                        num_infected += 1
+            # obtaining non-empty cell
+            x = int(self.random.uniform(0, width))
+            y = int(self.random.uniform(0, height))
+            
+            while not self.grid.is_cell_empty((x,y)):
+                x = int(self.random.uniform(0, width))
+                y = int(self.random.uniform(0, height))
 
-                        # generate typical infected lifespan from normal distribution
-                        ls = self.random.uniform(self.min_infected, self.max_infected)
-                        agent_type.setLifespan(ls)
-                    else:
-                        agent_type = Susceptible()
 
-                    agent = CovidAgent((x, y), self, agent_type)
-                    self.grid.place_agent(agent, (x, y))
-                    self.schedule.add(agent)
-                    num_agents += 1
+            if num_agents < self.density and self.random.random()<0.2:
+
+                if num_infected < self.minority_pc:
+                    agent_type = Infected()
+                    num_infected += 1
+
+                    # generate typical infected lifespan from normal distribution
+                    ls = self.random.uniform(self.min_infected, self.max_infected)
+                    agent_type.setLifespan(ls)
+                else:
+                    agent_type = Susceptible()
+
+                agent = CovidAgent((x, y), self, agent_type)
+                self.grid.place_agent(agent, (x, y))
+                self.schedule.add(agent)
+                num_agents += 1
 
         print(str(num_agents)+" agents finally.")
         self.running = True
