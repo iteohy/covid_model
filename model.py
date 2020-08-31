@@ -3,7 +3,6 @@ from mesa.time import RandomActivation
 from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
 
-
 class DiseaseState():
     def __init__(self, state, color, stroke_color):
         """
@@ -58,6 +57,13 @@ class Infected(DiseaseState):
     def __init__(self):
         # init disease state Infected, color Red, stroke Black
         super().__init__("I", "#FF0000", "#000000")
+        self.detected = True
+    
+    def set_detected(self, detected):
+        self.detected = detected
+
+    def is_detected(self):
+        return self.detected
 
 class Removed(DiseaseState):
     def __init__(self):
@@ -92,8 +98,8 @@ class CovidAgent(Agent):
         #self.d_state.incrementLife()
         self.d_state.decrementLifespan()
         
-        if False:
-        #if isinstance(self.d_state, Infected):
+        #if False:
+        if isinstance(self.d_state, Removed):
             print("assigned_ls, lifespan, day_isolation, isolate_duration, move")
             print(type(self.d_state))
             print(self.d_state.assigned_lifespan)
@@ -108,12 +114,14 @@ class CovidAgent(Agent):
                 self.d_state = Infected()
                 ls = self.random.uniform(self.model.min_infected, self.model.max_infected)
                 self.d_state.setLifespan(ls)
+                self.d_state.set_detected(self.random.random() < self.model.detection_rate)
+
 
         elif isinstance(self.d_state, Infected):
             if self.d_state.lifespan <= 0:
                 self.d_state = Removed()
 
-            if (self.d_state.assigned_lifespan - self.d_state.lifespan) >= self.model.day_isolation:
+            if (self.d_state.assigned_lifespan - self.d_state.lifespan) >= self.model.day_isolation and self.d_state.is_detected():
                 self.move = False
                 self.isolate_duration -= 1 # decrease isolation duration
 
@@ -141,10 +149,11 @@ class CovidAgent(Agent):
 
                 if isinstance(self.d_state, Infected): # infected
                     if isinstance(c.d_state, Susceptible) and c.move:
-                        if self.random.random()<self.model.infection_rate: # probability of infection
+                        if self.random.uniform(0,1)<self.model.infection_rate: # probability of infection
                             c.d_state = Exposed()
                             ls = self.random.uniform(self.model.min_exposed, self.model.max_exposed)
                             c.d_state.setLifespan(ls)
+                            self.model.cuminfected += 1
 
         # move to random adjacent cell
         x, y = self.pos
@@ -170,7 +179,7 @@ class Covid(Model):
     """
 
     def __init__(self, density, minority_pc, infection_rate, min_infected, max_infected, min_exposed, 
-        max_exposed, day_steps, day_isolation, height=20, width=20):
+        max_exposed, day_steps, day_isolation, detection_rate, height=20, width=20):
         """
         """
 
@@ -179,6 +188,7 @@ class Covid(Model):
         self.density = density
         self.minority_pc = minority_pc
         self.infection_rate = infection_rate
+        self.detection_rate = detection_rate
 
         self.day_steps = day_steps
 
@@ -197,11 +207,13 @@ class Covid(Model):
         self.removed = 0
 
         self.contact = 0
+        self.cuminfected = 0
+        self.isolated = 0
 
         self.datacollector = DataCollector(
             # Model-level count 
             {"contact": "contact", "infected": "infected", 
-            "exposed":"exposed", "susceptible": "susceptible", "removed": "removed"}, 
+            "exposed":"exposed", "susceptible": "susceptible", "removed": "removed", "isolated":"isolated"}, 
             
             # For testing purposes, agent's individual x and y
             {"x": lambda a: a.pos[0], "y": lambda a: a.pos[1]}
@@ -239,6 +251,8 @@ class Covid(Model):
                     # generate typical infected lifespan from normal distribution
                     ls = self.random.uniform(self.min_infected, self.max_infected)
                     agent_type.setLifespan(ls)
+                    agent_type.set_detected(self.random.uniform(0,1)<self.detection_rate)
+
                 else:
                     agent_type = Susceptible()
 
@@ -247,7 +261,7 @@ class Covid(Model):
                 self.schedule.add(agent)
                 num_agents += 1
 
-        print(str(num_agents)+" agents finally.")
+        #print(str(num_agents)+" agents finally.")
         self.running = True
         #self.datacollector.collect(self)
 
@@ -260,6 +274,7 @@ class Covid(Model):
         self.exposed = 0
         self.susceptible = 0
         self.removed = 0
+        self.isolated = 0
 
         self.schedule.step()
                
@@ -279,6 +294,10 @@ class Covid(Model):
                         self.susceptible += 1
                     elif isinstance(c.d_state, Removed):
                         self.removed += 1
+
+                    if not c.move:
+                        #print("isolated")
+                        self.isolated +=1
 
         self.contact = total/self.schedule.get_agent_count()
 
