@@ -98,8 +98,8 @@ class CovidAgent(Agent):
         #self.d_state.incrementLife()
         self.d_state.decrementLifespan()
         
-        #if False:
-        if isinstance(self.d_state, Removed):
+        if False:
+        #if isinstance(self.d_state, Removed):
             print("assigned_ls, lifespan, day_isolation, isolate_duration, move")
             print(type(self.d_state))
             print(self.d_state.assigned_lifespan)
@@ -112,7 +112,7 @@ class CovidAgent(Agent):
         if isinstance(self.d_state, Exposed):
             if self.d_state.lifespan <= 0 :
                 self.d_state = Infected()
-                ls = self.random.uniform(self.model.min_infected, self.model.max_infected)
+                ls = self.random.triangular(self.model.min_infected, self.model.max_infected, self.model.mean_infected)
                 self.d_state.setLifespan(ls)
                 self.d_state.set_detected(self.random.random() < self.model.detection_rate)
 
@@ -151,7 +151,7 @@ class CovidAgent(Agent):
                     if isinstance(c.d_state, Susceptible) and c.move:
                         if self.random.uniform(0,1)<self.model.infection_rate: # probability of infection
                             c.d_state = Exposed()
-                            ls = self.random.uniform(self.model.min_exposed, self.model.max_exposed)
+                            ls = self.random.triangular(self.model.min_exposed, self.model.max_exposed, self.model.mean_exposed)
                             c.d_state.setLifespan(ls)
                             self.model.cuminfected += 1
 
@@ -178,13 +178,15 @@ class Covid(Model):
     Model class for the Covid infection model.
     """
 
-    def __init__(self, density, minority_pc, infection_rate, min_infected, max_infected, min_exposed, 
-        max_exposed, day_steps, day_isolation, detection_rate, height=20, width=20):
+    def __init__(self, density, minority_pc, infection_rate, min_infected, max_infected, mean_infected, min_exposed, 
+        max_exposed, mean_exposed, day_steps, day_isolation, detection_rate, width=20):
         """
         """
-
+        # square grid
+        height=width
         self.height = height
         self.width = width
+
         self.density = density
         self.minority_pc = minority_pc
         self.infection_rate = infection_rate
@@ -194,8 +196,12 @@ class Covid(Model):
 
         self.min_exposed = min_exposed*self.day_steps
         self.max_exposed = max_exposed*self.day_steps
+        self.mean_exposed = mean_exposed*self.day_steps
+
         self.min_infected = min_infected*self.day_steps
         self.max_infected = max_infected*self.day_steps
+        self.mean_infected = mean_infected*self.day_steps
+        
         self.day_isolation = day_isolation*self.day_steps
 
         self.schedule = RandomActivation(self)
@@ -209,11 +215,13 @@ class Covid(Model):
         self.contact = 0
         self.cuminfected = 0
         self.isolated = 0
+        self.stats = {"infected":[], "exposed":[], "susceptible":[], "removed":[], "isolated":[]}
 
         self.datacollector = DataCollector(
             # Model-level count 
-            {"contact": "contact", "infected": "infected", 
-            "exposed":"exposed", "susceptible": "susceptible", "removed": "removed", "isolated":"isolated"}, 
+            {"contact": "contact", "infected": "infected", "cuminfected":"cuminfected",
+            "exposed":"exposed", "susceptible": "susceptible", "removed": "removed", "isolated":"isolated", 
+            "stats":"stats"}, 
             
             # For testing purposes, agent's individual x and y
             {"x": lambda a: a.pos[0], "y": lambda a: a.pos[1]}
@@ -301,10 +309,19 @@ class Covid(Model):
 
         self.contact = total/self.schedule.get_agent_count()
 
+        self.stats["infected"].append(self.infected)
+        self.stats["exposed"].append(self.exposed)
+        self.stats["susceptible"].append(self.susceptible)
+        self.stats["removed"].append(self.removed)
+        self.stats["isolated"].append(self.isolated)
+
          # collect data
         self.datacollector.collect(self)
 
         if self.infected+self.exposed == 0:
+            self.running = False
+
+        if self.schedule.steps/self.day_steps > 180:
             self.running = False
 
 
