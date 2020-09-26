@@ -48,18 +48,23 @@ seir_chart = ChartModule([
 contact_chart = ChartModule([{"Label": "contact", "Color": "Black"}])
 
 model_params = {
-    "height": 20,
     "width": 20,
     "density": UserSettableParameter("number", "Number of agents", value=100),
-    "minority_pc": UserSettableParameter("number", "Number Infected", value=10),
+    "initial_infected": UserSettableParameter("number", "Number Infected", value=10),
     "infection_rate": UserSettableParameter("slider", "Infectiousness", 0.7, 0.1, 1.0, 0.05),
     "detection_rate": UserSettableParameter("slider", "Detection rate", 0.7, 0.1, 1.0, 0.05),
-    "min_infected": UserSettableParameter('number', 'Min Infected duration (days)', value=7),
-    "max_infected": UserSettableParameter('number', 'Max Infected duration (days)', value=14),
-    "min_exposed": UserSettableParameter('number', 'Min Exposed duration (days)', value=1),
-    "max_exposed": UserSettableParameter('number', 'Max Exposed duration (days)', value=5),
+    "min_infected": UserSettableParameter('number', 'Min Infected duration (days)', value=17),
+    "max_infected": UserSettableParameter('number', 'Max Infected duration (days)', value=24),
+    "mean_infected": UserSettableParameter('number', 'Mean Infected duration (days)', value=20),
+
+    "min_exposed": UserSettableParameter('number', 'Min Exposed duration (days)', value=3.68),
+    "max_exposed": UserSettableParameter('number', 'Max Exposed duration (days)', value=6.68),
+    "mean_exposed": UserSettableParameter('number', 'Mean Exposed duration (days)', value=5.2),
+
     "day_steps": UserSettableParameter('number', 'Number of steps in a day', value=5),
     "day_isolation": UserSettableParameter('number', 'Number of days to isolation', value=6)
+    
+    
     
 }
 

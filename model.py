@@ -178,7 +178,7 @@ class Covid(Model):
     Model class for the Covid infection model.
     """
 
-    def __init__(self, density, minority_pc, infection_rate, min_infected, max_infected, mean_infected, min_exposed, 
+    def __init__(self, density, initial_infected, infection_rate, min_infected, max_infected, mean_infected, min_exposed, 
         max_exposed, mean_exposed, day_steps, day_isolation, detection_rate, width=20):
         """
         """
@@ -188,7 +188,7 @@ class Covid(Model):
         self.width = width
 
         self.density = density
-        self.minority_pc = minority_pc
+        self.initial_infected = initial_infected
         self.infection_rate = infection_rate
         self.detection_rate = detection_rate
 
@@ -252,7 +252,7 @@ class Covid(Model):
 
             if num_agents < self.density and self.random.random()<0.2:
 
-                if num_infected < self.minority_pc:
+                if num_infected < self.initial_infected:
                     agent_type = Infected()
                     num_infected += 1
 
